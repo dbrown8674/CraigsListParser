@@ -3,7 +3,9 @@ package CraigsListParser
 import (
 	"encoding/xml"
 	"fmt"
+	"io/ioutil"
 	"net/http"
+	"regexp"
 	"time"
 )
 
@@ -12,9 +14,12 @@ func Search(city string, category string, searchTerm string) (*SearchResult, err
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 	searchResult := &SearchResult{}
-	err = xml.NewDecoder(resp.Body).Decode(searchResult)
-	if err != nil {
+	body, err := ioutil.ReadAll(resp.Body)
+	re := regexp.MustCompile(`(&#x\d{4};\d{1,3})`)
+	body = re.ReplaceAll(body, []byte(``))
+	if err = xml.Unmarshal(body, searchResult); err != nil {
 		return nil, err
 	}
 	return searchResult, nil
@@ -60,16 +65,16 @@ type SearchResult struct {
 		} `xml:"items"`
 	} `xml:"channel"`
 	Item []struct {
-		Text        string `xml:",chardata"`
-		About       string `xml:"about,attr"`
-		Title       string `xml:"title"`
-		Link        string `xml:"link"`
-		Description string `xml:"description"`
+		Text        string    `xml:",chardata"`
+		About       string    `xml:"about,attr"`
+		Title       string    `xml:"title"`
+		Link        string    `xml:"link"`
+		Description string    `xml:"description"`
 		Date        time.Time `xml:"date"`
-		Language    string `xml:"language"`
-		Rights      string `xml:"rights"`
-		Source      string `xml:"source"`
-		Type        string `xml:"type"`
+		Language    string    `xml:"language"`
+		Rights      string    `xml:"rights"`
+		Source      string    `xml:"source"`
+		Type        string    `xml:"type"`
 		Enclosure   struct {
 			Text     string `xml:",chardata"`
 			Resource string `xml:"resource,attr"`
@@ -78,4 +83,3 @@ type SearchResult struct {
 		Issued string `xml:"issued"`
 	} `xml:"item"`
 }
-
